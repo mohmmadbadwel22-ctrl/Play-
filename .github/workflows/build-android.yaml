@@ -65,7 +65,7 @@ jobs:
       if: ${{ matrix.build-type == 'apk' }}
       run: |
         export ANDROID_BUILD_TOOLS=$ANDROID_HOME/build-tools/${{ env.ANDROID_BUILD_TOOLS_VERSION }}
-        SIGNING_PASS="$(openssl rand -hex 16)"
+        export SIGNING_PASS="$(openssl rand -hex 16)"
         echo "SIGNING_PASS=$SIGNING_PASS" >> "$GITHUB_ENV"
         keytool -genkeypair -v \
           -keystore "$RUNNER_TEMP/play-test.keystore" \
