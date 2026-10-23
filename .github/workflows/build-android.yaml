@@ -61,28 +61,29 @@ jobs:
         cp Play-release-unsigned.apk Play-release.apk
         cp build_android/build/outputs/bundle/release/Play-release.aab .
         $ANDROID_BUILD_TOOLS/zipalign -c -v 4 Play-release-unsigned.apk
-    - name: Prepare Signed APKs for Distribution
-      if: ${{ matrix.build-type == 'apk'  && env.ANDROID_KEYSTORE_PASS != null}}
+    - name: Sign APK for device testing
+      if: ${{ matrix.build-type == 'apk' }}
       run: |
         export ANDROID_BUILD_TOOLS=$ANDROID_HOME/build-tools/${{ env.ANDROID_BUILD_TOOLS_VERSION }}
-        $ANDROID_BUILD_TOOLS/apksigner sign --ks installer_android/deploy.keystore --ks-key-alias deploy --ks-pass env:ANDROID_KEYSTORE_PASS --key-pass env:ANDROID_KEYSTORE_PASS Play-release.apk
+        echo "SIGNING_PASS=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
+        keytool -genkeypair -v \
+          -keystore "$RUNNER_TEMP/play-test.keystore" \
+          -storepass "$SIGNING_PASS" -keypass "$SIGNING_PASS" \
+          -alias playtest -keyalg RSA -keysize 2048 -validity 3650 \
+          -dname "CN=Play Android Test Build"
+        $ANDROID_BUILD_TOOLS/apksigner sign \
+          --ks "$RUNNER_TEMP/play-test.keystore" \
+          --ks-key-alias playtest \
+          --ks-pass env:SIGNING_PASS --key-pass env:SIGNING_PASS \
+          Play-release.apk
+        $ANDROID_BUILD_TOOLS/apksigner verify --verbose Play-release.apk
         $ANDROID_BUILD_TOOLS/zipalign -c -v 4 Play-release.apk
-      env:
-        ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-    - name: Upload a Build Artifact Android APK Signed
-      if: ${{ matrix.build-type == 'apk' && env.ANDROID_KEYSTORE_PASS != null }}
-      uses: actions/upload-artifact@v7
-      with:
-        name: Play_Android_Signed
-        path: Play-release.apk
-      env:
-        ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-    - name: Upload a Build Artifact Android APK Unsigned
+    - name: Upload signed test APK
       if: ${{ matrix.build-type == 'apk' }}
       uses: actions/upload-artifact@v7
       with:
-        name: Play_Android_APK_Unsigned
-        path: Play-release-unsigned.apk
+        name: Play_Android_Signed_Test
+        path: Play-release.apk
     - name: Upload a Build Artifact Android libretro
       if: ${{ matrix.build-type == 'libretro' }}
       uses: actions/upload-artifact@v7
