@@ -1,9 +1,12 @@
 name: Build Android
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
 env:
   ANDROID_BUILD_TOOLS_VERSION: '34.0.0'
-  ANDROID_NDK_VERSION: '25.2.9519653'
+  ANDROID_NDK_VERSION: '29.0.14206865'
   ANDROID_CMAKE_VERSION: '3.31.1'
 jobs:
   build_android:
