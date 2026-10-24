@@ -987,7 +987,7 @@ void CPS2VM::EmuThread()
 								std::fprintf(stderr, " %s=%llu", profileStats[zoneIndex].name.c_str(), static_cast<unsigned long long>(averageTime));
 								profileAccumulatedTimes[zoneIndex] = 0;
 							}
-							std::fprintf(stderr, "\\n");
+							std::fprintf(stderr, "\n");
 						}
 						CProfiler::GetInstance().Reset();
 #endif
