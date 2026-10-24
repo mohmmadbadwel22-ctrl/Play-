@@ -966,17 +966,28 @@ void CPS2VM::EmuThread()
 #endif
 						OnNewFrame();
 #ifdef PROFILE
-						// Emit a low-overhead profile snapshot periodically for Android device diagnosis.
+						// Average profiler timings over 120 frames to reduce sample noise.
 						static uint32 profileFrameCounter = 0;
+						static std::vector<uint64> profileAccumulatedTimes;
+						const auto profileStats = CProfiler::GetInstance().GetStats();
+						if(profileAccumulatedTimes.size() < profileStats.size())
+						{
+							profileAccumulatedTimes.resize(profileStats.size(), 0);
+						}
+						for(size_t zoneIndex = 0; zoneIndex < profileStats.size(); zoneIndex++)
+						{
+							profileAccumulatedTimes[zoneIndex] += profileStats[zoneIndex].totalTime;
+						}
 						if((++profileFrameCounter % 120) == 0)
 						{
-							const auto profileStats = CProfiler::GetInstance().GetStats();
-						std::fprintf(stderr, "[PLAY_PROFILE]");
-							for(const auto& zone : profileStats)
+							std::fprintf(stderr, "[PLAY_PROFILE avg_ns_per_frame over=120]");
+							for(size_t zoneIndex = 0; zoneIndex < profileStats.size(); zoneIndex++)
 							{
-								std::fprintf(stderr, " %s=%llu", zone.name.c_str(), static_cast<unsigned long long>(zone.totalTime));
+								const auto averageTime = profileAccumulatedTimes[zoneIndex] / 120;
+								std::fprintf(stderr, " %s=%llu", profileStats[zoneIndex].name.c_str(), static_cast<unsigned long long>(averageTime));
+								profileAccumulatedTimes[zoneIndex] = 0;
 							}
-							std::fprintf(stderr, " ns\n");
+							std::fprintf(stderr, "\\n");
 						}
 						CProfiler::GetInstance().Reset();
 #endif
