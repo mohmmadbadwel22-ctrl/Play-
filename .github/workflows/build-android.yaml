@@ -41,7 +41,7 @@ jobs:
       run: |
         cd build_android
         ./gradlew
-        ./gradlew assembleRelease
+        ./gradlew assembleRelease -PenableProfiling=true
         ./gradlew bundleRelease
     - name: Build libretro Core
       if: ${{ matrix.build-type == 'libretro' }}
@@ -83,7 +83,7 @@ jobs:
       if: ${{ matrix.build-type == 'apk' }}
       uses: actions/upload-artifact@v7
       with:
-        name: Play_Android_Signed_Test
+        name: Play_Android_Profile_Diagnostics
         path: Play-release.apk
     - name: Upload a Build Artifact Android libretro
       if: ${{ matrix.build-type == 'libretro' }}
