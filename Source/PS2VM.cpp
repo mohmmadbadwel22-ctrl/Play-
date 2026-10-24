@@ -976,7 +976,7 @@ void CPS2VM::EmuThread()
 							{
 								std::fprintf(stderr, " %s=%llu", zone.name.c_str(), static_cast<unsigned long long>(zone.totalTime));
 							}
-							std::fprintf(stderr, " ns\\n");
+							std::fprintf(stderr, " ns\n");
 						}
 						CProfiler::GetInstance().Reset();
 #endif
