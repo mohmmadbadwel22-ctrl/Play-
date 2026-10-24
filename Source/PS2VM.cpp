@@ -966,6 +966,18 @@ void CPS2VM::EmuThread()
 #endif
 						OnNewFrame();
 #ifdef PROFILE
+						// Emit a low-overhead profile snapshot periodically for Android device diagnosis.
+						static uint32 profileFrameCounter = 0;
+						if((++profileFrameCounter % 120) == 0)
+						{
+							const auto profileStats = CProfiler::GetInstance().GetStats();
+						std::fprintf(stderr, "[PLAY_PROFILE]");
+							for(const auto& zone : profileStats)
+							{
+								std::fprintf(stderr, " %s=%llu", zone.name.c_str(), static_cast<unsigned long long>(zone.totalTime));
+							}
+							std::fprintf(stderr, " ns\\n");
+						}
 						CProfiler::GetInstance().Reset();
 #endif
 						m_cpuUtilisation = CPU_UTILISATION_INFO();
