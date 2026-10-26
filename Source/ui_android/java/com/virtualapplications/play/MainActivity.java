@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.*;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
+import androidx.appcompat.widget.SearchView;
 
 import android.util.Log;
 import android.view.*;
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 	private List<Bootable> currentGames = new ArrayList<>();
 	private int sortMethod = SORT_NONE;
 	private String navSubtitle;
+private String searchQuery = "";
 	private Toolbar toolbar;
 
 	static final int g_settingsRequestCode = 0xDEAD;
@@ -381,11 +383,33 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 	{
 		if(!mNavigationDrawerFragment.isDrawerOpen())
 		{
-			// Only show items in the action bar relevant to this screen
-			// if the drawer is not showing. Otherwise, let the drawer
-			// decide what to show in the action bar.
-			//getMenuInflater().inflate(R.menu.main, menu);
 			restoreActionBar();
+			MenuItem searchItem = menu.add(Menu.NONE, 0x534541, Menu.NONE, "Search games");
+			searchItem.setIcon(android.R.drawable.ic_menu_search);
+			searchItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
+			SearchView searchView = new SearchView(this);
+			searchView.setQueryHint("Search games");
+			searchView.setMaxWidth(Integer.MAX_VALUE);
+			searchItem.setActionView(searchView);
+			searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener()
+			{
+				@Override
+				public boolean onQueryTextSubmit(String query)
+				{
+					searchQuery = query == null ? "" : query.trim();
+					populateImages(currentGames);
+					searchView.clearFocus();
+					return true;
+				}
+
+				@Override
+				public boolean onQueryTextChange(String newText)
+				{
+					searchQuery = newText == null ? "" : newText.trim();
+					populateImages(currentGames);
+					return true;
+				}
+			});
 			return true;
 		}
 		return super.onCreateOptionsMenu(menu);
@@ -570,6 +594,23 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 
 	private void populateImages(List<Bootable> images)
 	{
+		List<Bootable> visibleImages = images;
+		String query = searchQuery == null ? "" : searchQuery.trim().toLowerCase(Locale.ROOT);
+		if(!query.isEmpty())
+		{
+			visibleImages = new ArrayList<>();
+			for(Bootable game : images)
+			{
+				if(game == null) continue;
+				String title = game.title == null ? "" : game.title.toLowerCase(Locale.ROOT);
+				String path = game.path == null ? "" : game.path.toLowerCase(Locale.ROOT);
+				if(title.contains(query) || path.contains(query))
+				{
+					visibleImages.add(game);
+				}
+			}
+		}
+
 		GridView gameGrid = findViewById(R.id.game_grid);
 		if(gameGrid != null)
 		{
@@ -578,22 +619,27 @@ public class MainActivity extends AppCompatActivity implements NavigationDrawerF
 			{
 				gameGrid.setOnItemClickListener((parent, v, position, id) -> v.performClick());
 			}
-			if(images == null || images.isEmpty())
+
+			if(visibleImages == null || visibleImages.isEmpty())
 			{
-				// Display warning that no disks exist
-				ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, (sortMethod == SORT_RECENT) ? new String[]{getString(R.string.no_recent_adapter)} : new String[]{getString(R.string.no_game_found_adapter)});
+				String emptyMessage;
+				if(!query.isEmpty())
+				{
+					emptyMessage = "No games match \"" + searchQuery + "\"";
+				}
+				else
+				{
+					emptyMessage = (sortMethod == SORT_RECENT) ? getString(R.string.no_recent_adapter) : getString(R.string.no_game_found_adapter);
+				}
+				ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{emptyMessage});
 				gameGrid.setNumColumns(1);
 				gameGrid.setAdapter(adapter);
 			}
 			else
 			{
-				GamesAdapter adapter = new GamesAdapter(this, R.layout.game_list_item, images, gameInfo);
-				/*
-				-1 = autofit
-				 */
+				GamesAdapter adapter = new GamesAdapter(this, R.layout.game_list_item, visibleImages, gameInfo);
 				gameGrid.setNumColumns(-1);
 				gameGrid.setColumnWidth((int)getResources().getDimension(R.dimen.cover_width));
-
 				gameGrid.setAdapter(adapter);
 				gameGrid.invalidate();
 			}
